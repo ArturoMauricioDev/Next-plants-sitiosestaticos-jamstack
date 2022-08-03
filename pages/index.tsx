@@ -1,7 +1,7 @@
 import { GetStaticProps, InferGetStaticPropsType } from 'next'
 
 import { Layout } from '@components/Layout'
-import { getPlantList } from '@api/'
+import { getPlantList } from './../api'
 import { PlantCollection } from '@components/PlantCollection'
 import { Hero } from '@components/Hero'
 import { Authors } from '@components/Authors'
