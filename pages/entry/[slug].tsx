@@ -1,49 +1,72 @@
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
-import { getPlant, QueryStatus } from '@api'
+import { getCategoryList, getPlant, getPlantList } from '@api'
 
 import { AuthorCard } from '@components/AuthorCard'
 import { Layout } from '@components/Layout'
+import { PlantEntryInline } from '@components/PlantCollection'
 import { RichText } from '@components/RichText'
 import { Grid, Typography } from '@material-ui/core'
 
-const PlantEntryPage = () => {
-  // const [status, setStatus] =
-  // useState<'success' | 'error' | 'loading' | 'idle'>('idle')
-  const [status, setStatus] = useState<QueryStatus>('idle')
-  const [plant, setPlant] = useState<Plant | null>(null)
-  const router = useRouter()
-  const slug = router.query.slug
+import { GetStaticProps, InferGetStaticPropsType } from 'next'
+import Link from 'next/link'
 
-  useEffect(() => {
-    if (typeof slug !== 'string') {
-      return
+type PathType = {
+  params: {
+    slug: string
+  }
+}
+export const getStaticPaths = async () => {
+  const entries = await getPlantList({ limit: 10 })
+  const paths: PathType[] = entries.map((plant) => ({
+    params: {
+      slug: plant.slug,
+    },
+  }))
+  return {
+    paths,
+    fallback: false,
+    //404 en las entradas no encontradas
+  }
+}
+
+type PlantEntryProps = {
+  plant: Plant
+  otherEntries: Plant[]
+  categories: Category[]
+}
+export const getStaticProps: GetStaticProps<PlantEntryProps> = async ({
+  params,
+}) => {
+  const slug = params?.slug
+  if (typeof slug !== 'string') {
+    return {
+      notFound: true,
     }
-
-    setStatus('loading')
-    getPlant(slug)
-      .then((reciveData) => {
-        setPlant(reciveData)
-        setStatus('success')
-      })
-      .catch(() => setStatus('error'))
-  }, [slug])
-
-  if (status === 'loading' || status === 'idle') {
-    return (
-      <Layout>
-        <main>Loading awesomeness...</main>
-      </Layout>
-    )
   }
-  if (plant == null || status === 'error') {
-    return (
-      <Layout>
-        <main>Not Found, error 404 my friend.</main>
-      </Layout>
-    )
-  }
+  try {
+    const plant = await getPlant(slug)
+    //sidebar
+    const otherEntries = await getPlantList({ limit: 5 })
+    const categories = await getCategoryList({ limit: 10 })
 
+    return {
+      props: {
+        plant,
+        otherEntries,
+        categories,
+      },
+    }
+  } catch (error) {
+    return {
+      notFound: true,
+    }
+  }
+}
+
+const PlantEntryPage = ({
+  plant,
+  otherEntries,
+  categories,
+}: InferGetStaticPropsType<typeof getStaticProps>) => {
   return (
     <Layout>
       <Grid container spacing={4}>
@@ -63,11 +86,27 @@ const PlantEntryPage = () => {
             <Typography className="mb-4" variant="h5" component="h3">
               Recent posts
             </Typography>
+            {otherEntries.map((plantEntry) => (
+              <article className="mb-4" key={plantEntry.id}>
+                <PlantEntryInline {...plantEntry} />
+              </article>
+            ))}
           </section>
           <section className="m-t10">
             <Typography className="mb-4" variant="h5" component="h3">
               Categories
             </Typography>
+            <ul className="list">
+              {categories.map((category) => (
+                <li key={category.id}>
+                  <Link passHref href={`/category/${category.slug}`}>
+                    <Typography component="a" variant="h6">
+                      {category.title}
+                    </Typography>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </section>
         </Grid>
       </Grid>
