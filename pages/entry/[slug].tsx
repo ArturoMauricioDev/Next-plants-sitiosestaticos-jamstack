@@ -7,6 +7,7 @@ import { RichText } from '@components/RichText'
 import { Grid, Typography } from '@material-ui/core'
 
 import { GetStaticProps, InferGetStaticPropsType } from 'next'
+import { useRouter } from 'next/dist/client/router'
 import Link from 'next/link'
 
 type PathType = {
@@ -23,8 +24,12 @@ export const getStaticPaths = async () => {
   }))
   return {
     paths,
-    fallback: false,
-    //404 en las entradas no encontradas
+    //404
+    //fallback: false,
+    //wait until http is done
+    //fallback: 'blocking',
+    //let the component handle it, on getStaticProps
+    fallback: true,
   }
 }
 
@@ -54,6 +59,7 @@ export const getStaticProps: GetStaticProps<PlantEntryProps> = async ({
         otherEntries,
         categories,
       },
+      revalidate: 5 * 60, //refresh 5 min
     }
   } catch (error) {
     return {
@@ -67,6 +73,12 @@ const PlantEntryPage = ({
   otherEntries,
   categories,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
+  const router = useRouter()
+  if (router.isFallback) {
+    //Next.js esta cargando lo que sea que este haciendo en getStaticProps
+    return <Layout>Loading awesomeness... </Layout>
+  }
+
   return (
     <Layout>
       <Grid container spacing={4}>
