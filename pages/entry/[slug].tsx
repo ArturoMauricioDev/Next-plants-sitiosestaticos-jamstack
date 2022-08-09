@@ -1,3 +1,6 @@
+import fs from 'fs'
+import path from 'path'
+
 import { getCategoryList, getPlant, getPlantList } from '@api'
 
 import { AuthorCard } from '@components/AuthorCard'
@@ -15,11 +18,15 @@ type PathType = {
     slug: string
   }
 }
-export const getStaticPaths = async () => {
-  const entries = await getPlantList({ limit: 10 })
-  const paths: PathType[] = entries.map((plant) => ({
+export const getStaticPaths = () => {
+  // const entries = await getPlantList({ limit: 10 })
+  const plantEntriesFromFS = fs
+    .readFileSync(path.join(process.cwd(), 'paths.txt'), 'utf8')
+    .toString()
+  const entries = plantEntriesFromFS.split('\n')
+  const paths: PathType[] = entries.map((slug) => ({
     params: {
-      slug: plant.slug,
+      slug,
     },
   }))
   return {
